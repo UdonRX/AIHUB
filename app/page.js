@@ -133,7 +133,7 @@ export default function Home(){
     {category==="image"&&images.length>0&&<div className="attachPreview">{images.map((x,i)=><img className="thumb" src={x} alt={"添付画像 "+(i+1)} key={i}/>)}</div>}
     <div className="composerRow">
       {category==="image"&&<label className="iconButton" aria-label="画像を添付"><Icon type="plus" size={20}/><input className="fileInput" type="file" accept="image/*" multiple onChange={addImages}/></label>}
-      <textarea ref={ref} value={prompt} onChange={e=>setPrompt(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit()}}} placeholder={category==="search"?"知りたいことを入力…":category==="code"?"コードやエラーを入力…":"作りたい画像を説明…"} rows={1} inputMode="text" enterKeyHint="send"/>
+      <textarea ref={ref} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={category==="search"?"知りたいことを入力…":category==="code"?"コードやエラーを入力…":"作りたい画像を説明…"} rows={1} inputMode="text" enterKeyHint="enter"/>
       <button className="sendButton" type="submit" disabled={!prompt.trim()||loading} aria-label="送信"><Icon type="send" size={19}/></button>
     </div>
   </form></div>

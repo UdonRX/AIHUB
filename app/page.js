@@ -6,7 +6,7 @@ const MODES=[
   {id:"search",icon:"🌐",name:"検索",hint:"Webから探す"},
   {id:"code",icon:"💻",name:"コード",hint:"作る・直す"},
   {id:"image",icon:"🖼️",name:"画像",hint:"作る・編集する"}
-];
+function esc(s){return String(s).replace(/[&<>\']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\'":"&#039;"}[c])).replace(/"/g,"&quot;")}
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#039;"}[c]))}
 

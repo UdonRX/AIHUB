@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {"dev":"next dev","build":"next build","start":"next start"},
-  "dependencies": {"@gradio/client":"^1.15.0","next":"16.3.6","react":"19.2.0","react-dom":"19.2.0"}
+  "dependencies": {"@gradio/client":"^2.7.1","next":"16.3.6","react":"19.2.0","react-dom":"19.2.0"}
 }

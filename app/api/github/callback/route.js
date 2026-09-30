@@ -7,7 +7,7 @@ export async function GET(request){
   if(!code||!state||!saved||state!==saved)return NextResponse.json({error:"GitHub認証の確認に失敗しました。"}, {status:400});
   try{
     const token=await exchangeCode(code);
-    const r=NextResponse.redirect(new URL("/",request.url));
+    const r=NextResponse.redirect(new URL("/?github=connected",request.url));
     r.headers.append("Set-Cookie",sessionCookie(token));
     r.headers.append("Set-Cookie",clearStateCookie());
     return r;

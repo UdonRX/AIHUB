@@ -121,7 +121,7 @@ export default function Home(){
       {loading&&<div className="resultCard"><div className="notice"><span className="loadingDot"/>考え中…</div></div>}
       {result&&!loading&&<div className="resultCard">
         {result.error?<div className="notice">{result.error}</div>:<>
-          <div className="resultMeta"><span className="resultMode"><Icon type={mode.id} size={14}/>{mode.name}</span><span>AIで処理</span></div>
+          <div className="resultMeta"><span className="resultMode"><Icon type={mode.id} size={14}/>{mode.name}</span><span>{result.receivedImages>0?`画像${result.receivedImages}枚を受信・処理`:"AIで処理"}</span></div>
           {result.imageUrl?<img className="generatedImage" src={result.imageUrl} alt="生成結果"/>:<div className="markdown" dangerouslySetInnerHTML={{__html:markdown(result.text)}}/>}
           {result.sources?.length>0&&<div className="sources">{result.sources.map((x,i)=><div className="source" key={x.url+"-"+i}><a href={x.url} target="_blank" rel="noopener noreferrer">{x.title}</a><small>{x.description}</small></div>)}</div>}
         </>}

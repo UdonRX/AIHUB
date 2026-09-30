@@ -41,7 +41,7 @@ export async function POST(request){
     const fetched=await Promise.all(chosen.map(async path=>{
       const f=await githubFetch(token,`/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`);
       if(f.encoding!=="base64"||!f.content)throw new Error("ファイルを読めませんでした: "+path);
-      const content=Buffer.from(f.content.replace(/\\n/g,""),"base64").toString("utf8");
+      const content=Buffer.from(f.content.replace(/\n/g,""),"base64").toString("utf8");
       return {path,sha:f.sha,content:content.slice(0,70000)};
     }));
     const total=fetched.reduce((n,x)=>n+x.content.length,0);

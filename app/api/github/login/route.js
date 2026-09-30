@@ -6,7 +6,7 @@ export async function GET(request){
   const state=makeState();
   const url=new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id",process.env.GITHUB_CLIENT_ID);
-  url.searchParams.set("redirect_uri",new URL("/api/github/callback",request.url).toString());
+  url.searchParams.set("redirect_uri",process.env.GITHUB_CALLBACK_URL||new URL("/api/github/callback",request.url).toString());
   url.searchParams.set("scope",process.env.GITHUB_OAUTH_SCOPE||"public_repo");
   url.searchParams.set("state",state);
   const r=NextResponse.redirect(url);

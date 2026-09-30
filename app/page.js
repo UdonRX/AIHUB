@@ -1,149 +1,38 @@
 "use client";
-
-import {useEffect,useRef,useState} from "react";
-
-const MODES=[
-  {id:"search",name:"検索",hint:"Webから探す"},
-  {id:"code",name:"コード",hint:"作る・直す"},
-  {id:"image",name:"画像",hint:"作る・編集する"}
-];
-
-function Icon({type,size=24}){
-  const common={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"1.8",strokeLinecap:"round",strokeLinejoin:"round","aria-hidden":"true"};
-  if(type==="search") return <svg {...common}><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>;
-  if(type==="code") return <svg {...common}><path d="m8.5 7-5 5 5 5"/><path d="m15.5 7 5 5-5 5"/><path d="m13.5 4-3 16"/></svg>;
-  if(type==="image") return <svg {...common}><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5.5 17 4.5-4.5 3.5 3 2.5-2.5 2.5 2.5"/></svg>;
-  if(type==="plus") return <svg {...common}><path d="M12 5v14M5 12h14"/></svg>;
-  if(type==="send") return <svg {...common}><path d="m5 4 14 8-14 8 3-8-3-8Z"/><path d="M8 12h11"/></svg>;
-  return null;
-}
-
-function esc(s){
-  return String(s).replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[c]));
-}
-
-function markdown(md){
-  const tick=String.fromCharCode(96);
-  let s=String(md||"").replace(/\r\n/g,"\n");
-  const blocks=[];
-  const fence=new RegExp(tick.repeat(3)+"([\\s\\S]*?)"+tick.repeat(3),"g");
-  s=s.replace(fence,(_,code)=>{
-    const i=blocks.push(code.replace(/^\w+\n/,""))-1;
-    return "@@CODE"+i+"@@";
-  });
-  let h=esc(s);
-  h=h.replace(/^### (.+)$/gm,"<h3>$1</h3>").replace(/^## (.+)$/gm,"<h2>$1</h2>").replace(/^# (.+)$/gm,"<h1>$1</h1>");
-  h=h.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-  h=h.replace(new RegExp(tick+"([^"+tick+"]+)"+tick,"g"),"<code>$1</code>");
-  h=h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  h=h.replace(/^[-*] (.+)$/gm,"<li>$1</li>").replace(/\n/g,"<br/>");
-  h=h.replace(/(<li>.*?<\/li>)(?:<br\/>)?(?=<li>)/g,"$1");
-  h=h.replace(/@@CODE(\d+)@@/g,(_,i)=>"<pre><code>"+esc(blocks[Number(i)])+"</code></pre>");
-  return h;
-}
-
+import{useEffect,useRef,useState}from"react";
+const MODES=[{id:"search",name:"検索",hint:"Webから探す"},{id:"code",name:"コード",hint:"作る・直す"},{id:"image",name:"画像",hint:"作る・編集する"}];
+const KEY="aihub-chats-v3";
+function Icon({type,size=22}){const p={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"1.8",strokeLinecap:"round",strokeLinejoin:"round"};if(type==="search")return <svg {...p}><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>;if(type==="code")return <svg {...p}><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4l-3 16"/></svg>;if(type==="image")return <svg {...p}><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5.5 17 4.5-4.5 3.5 3 2.5-2.5 2.5 2.5"/></svg>;if(type==="plus")return <svg {...p}><path d="M12 5v14M5 12h14"/></svg>;if(type==="send")return <svg {...p}><path d="m5 4 14 8-14 8 3-8-3-8Z"/><path d="M8 12h11"/></svg>;if(type==="back")return <svg {...p}><path d="m15 18-6-6 6-6M9 12h11"/></svg>;if(type==="copy")return <svg {...p}><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>;return null}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function md(s){let h=esc(s).replace(/^### (.+)$/gm,"<h3>$1</h3>").replace(/^## (.+)$/gm,"<h2>$1</h2>").replace(/^# (.+)$/gm,"<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/\n/g,"<br/>");return h}
+const title=s=>{s=String(s||"").replace(/\s+/g," ").trim();return s.length>42?s.slice(0,42)+"…":s||"新しいチャット"};
+const date=v=>{try{return new Intl.DateTimeFormat("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(v))}catch{return""}};
 export default function Home(){
-  const [category,setCategory]=useState("search");
-  const [prompt,setPrompt]=useState("");
-  const [images,setImages]=useState([]);
-  const [result,setResult]=useState(null);
-  const [loading,setLoading]=useState(false);
-  const [statusOpen,setStatusOpen]=useState(false);
-  const [status,setStatus]=useState(null);
-  const [github,setGithub]=useState(null);
-  const [githubRepo,setGithubRepo]=useState("");
-  const [githubMessage,setGithubMessage]=useState("");
-  const ref=useRef(null);
-
-  useEffect(()=>{if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{})},[]);
-  useEffect(()=>{fetch("/api/github/me",{cache:"no-store"}).then(r=>r.json()).then(setGithub).catch(()=>setGithub(null))},[]);
-  useEffect(()=>{if(ref.current){ref.current.style.height="auto";ref.current.style.height=Math.min(ref.current.scrollHeight,150)+"px"}},[prompt]);
-
-  async function loadStatus(){
-    setStatusOpen(true);
-    try{const r=await fetch("/api/status",{cache:"no-store"});setStatus(await r.json())}catch{setStatus(null)}
-  }
-
-  function addImages(e){
-    const fs=Array.from(e.target.files||[]).slice(0,10);
-    Promise.all(fs.map(f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)}))).then(setImages);
-    e.target.value="";
-  }
-
-  async function submit(e){
-    e?.preventDefault();
-    if(!prompt.trim()||loading)return;
-    setLoading(true);setResult(null);setGithubMessage("");
-    try{
-      const direct=category==="code"&&github?.connected&&githubRepo.trim();
-      const endpoint=direct?"/api/github/apply":"/api/ai";
-      const body=direct?{repo:githubRepo,prompt}:{category,prompt,images:category==="image"?images:[]};
-      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
-      const d=await r.json();
-      if(!r.ok)throw new Error(d?.error||"処理に失敗しました");
-      if(direct){
-        setGithubMessage(d.changedFiles?.length?"GitHubに反映したよ："+d.changedFiles.join("、"):d.message||"変更はありませんでした。");
-        setResult({text:d.changedFiles?.length?"GitHubへ直接反映しました。\\n\\n変更ファイル\\n"+d.changedFiles.map(x=>"- "+x).join("\\n")+"\\n\\nブランチ："+d.branch:d.message||"変更はありませんでした。",provider:"GitHub"});
-      }else setResult(d);
-    }catch(e){setResult({error:e.message||"処理に失敗しました"})}
-    finally{setLoading(false)}
-  }
-
-  async function githubLogout(){
-    await fetch("/api/github/logout",{method:"POST"});
-    setGithub({...github,connected:false,user:null});
-  }
-
-  const mode=MODES.find(x=>x.id===category);
-
-  return <main className="app"><div className="shell">
-    <div className="topbar"><div className="brand">AI HUB</div><button className="statusButton" onClick={loadStatus}>AI STATUS</button></div>
-
-    <section className="hero"><div className="eyebrow">目的を選ぶだけ</div><h1>何をする？</h1><p><Icon type={mode.id} size={17}/> {mode.name}を選ぶと、その中で使えるAIを自動で選択します。</p></section>
-
-    <section className="modes" aria-label="ジャンル選択">
-      {MODES.map(x=><button key={x.id} className={"mode "+(category===x.id?"active":"")} onClick={()=>setCategory(x.id)} aria-pressed={category===x.id}>
-        <span className="modeIcon"><Icon type={x.id} size={25}/></span><span className="modeName">{x.name}</span><span className="modeHint">{x.hint}</span>
-      </button>)}
-    </section>
-
-    {category==="code"&&<section className="githubBox">
-      <div className="githubBoxTop"><div><strong>GitHubへ直接反映</strong><small>無料のGitHub APIを使って、必要なファイルだけ変更する</small></div>
-      {github?.connected?<button className="githubSmall" type="button" onClick={githubLogout}>切断</button>:<button className="githubSmall" type="button" onClick={()=>{window.location.href="/api/github/login"}} disabled={!github?.configured}>GitHub接続</button>}</div>
-      {github?.connected&&<><div className="githubUser">{github.user?.login} として接続中</div><input className="repoInput" value={githubRepo} onChange={e=>setGithubRepo(e.target.value)} placeholder="UdonRX/drivingapp"/></>}
-      {!github?.configured&&<small className="githubHint">GitHub連携の環境変数を設定すると接続できるよ。</small>}
-      {githubMessage&&<div className="githubMessage">{githubMessage}</div>}
-    </section>}
-
-    <section className="resultArea">
-      {loading&&<div className="resultCard"><div className="notice"><span className="loadingDot"/>考え中…</div></div>}
-      {result&&!loading&&<div className="resultCard">
-        {result.error?<div className="notice">{result.error}</div>:<>
-          <div className="resultMeta"><span className="resultMode"><Icon type={mode.id} size={14}/>{mode.name}</span><span>{result.receivedImages>0?`画像${result.receivedImages}枚を受信・処理`:"AIで処理"}</span></div>
-          {result.imageUrl?<img className="generatedImage" src={result.imageUrl} alt="生成結果"/>:<div className="markdown" dangerouslySetInnerHTML={{__html:markdown(result.text)}}/>}
-          {result.sources?.length>0&&<div className="sources">{result.sources.map((x,i)=><div className="source" key={x.url+"-"+i}><a href={x.url} target="_blank" rel="noopener noreferrer">{x.title}</a><small>{x.description}</small></div>)}</div>}
-        </>}
-      </div>}
-    </section>
+ const[cat,setCat]=useState("search"),[chats,setChats]=useState({search:[],code:[],image:[]}),[view,setView]=useState("history"),[id,setId]=useState(null),[prompt,setPrompt]=useState(""),[images,setImages]=useState([]),[loading,setLoading]=useState(false),[filter,setFilter]=useState(""),[copied,setCopied]=useState(null),[github,setGithub]=useState(null),[repo,setRepo]=useState(""),[githubMsg,setGithubMsg]=useState(""),[statusOpen,setStatusOpen]=useState(false),[status,setStatus]=useState(null),[drag,setDrag]=useState(0),dragging=useRef(false),start=useRef(0),input=useRef(null);
+ useEffect(()=>{try{const x=localStorage.getItem(KEY);if(x)setChats(JSON.parse(x))}catch{};fetch("/api/github/me",{cache:"no-store"}).then(r=>r.json()).then(setGithub).catch(()=>{})},[]);
+ useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify(chats))}catch{}},[chats]);
+ useEffect(()=>{if(view==="chat")setTimeout(()=>input.current?.focus(),80)},[view,id]);
+ const mode=MODES.find(x=>x.id===cat),current=chats[cat].find(x=>x.id===id);
+ const list=chats[cat].filter(x=>{const q=filter.toLowerCase().trim();return!q||x.title.toLowerCase().includes(q)||x.preview.toLowerCase().includes(q)});
+ function tab(x){setCat(x);setView("history");setId(null);setFilter("");setPrompt("");setImages([])}
+ function newChat(){setId(null);setPrompt("");setImages([]);setGithubMsg("");setView("chat")}
+ function openChat(x){setId(x.id);setPrompt("");setImages([]);setGithubMsg("");setView("chat")}
+ function history(){setView("history");setId(null);setPrompt("");setImages([]);setDrag(0)}
+ function put(messages,cid){setChats(prev=>{const a=[...prev[cat]],i=a.findIndex(x=>x.id===cid),first=messages.find(x=>x.role==="user"),item={id:cid,title:i>=0?a[i].title:title(first?.text),preview:String(messages.at(-1)?.text||"").replace(/\s+/g," ").slice(0,100),updatedAt:Date.now(),messages:messages.map(m=>({...m,imageUrl:m.imageUrl&&!String(m.imageUrl).startsWith("data:")?m.imageUrl:undefined}))};if(i>=0)a[i]=item;else a.unshift(item);a.sort((x,y)=>y.updatedAt-x.updatedAt);return{...prev,[cat]:a}})}
+ function attach(e){const fs=Array.from(e.target.files||[]).slice(0,10);Promise.all(fs.map(f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)}))).then(setImages);e.target.value=""}
+ async function send(e){e.preventDefault();if(!prompt.trim()||loading)return;const text=prompt.trim(),cid=id||crypto.randomUUID(),base=current?.messages||[],user={role:"user",text,createdAt:Date.now(),imageCount:images.length};setId(cid);setView("chat");setPrompt("");setLoading(true);put([...base,user],cid);try{const direct=cat==="code"&&github?.connected&&repo.trim(),r=await fetch(direct?"/api/github/apply":"/api/ai",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(direct?{repo,prompt:text}:{category:cat,prompt:text,images:cat==="image"?images:[]})}),d=await r.json();if(!r.ok)throw Error(d?.error||"処理に失敗しました");const answer=direct?{role:"assistant",text:d.changedFiles?.length?"GitHubへ直接反映しました。\n\n変更ファイル\n"+d.changedFiles.map(x=>"- "+x).join("\n")+"\n\nブランチ："+d.branch:d.message||"変更はありませんでした。",createdAt:Date.now()}:{role:"assistant",text:d.text||"",imageUrl:d.imageUrl,receivedImages:d.receivedImages,sources:d.sources,createdAt:Date.now()};put([...base,user,answer],cid);if(direct)setGithubMsg(d.changedFiles?.length?"GitHubに反映したよ："+d.changedFiles.join("、"):d.message||"変更はありませんでした。")}catch(err){put([...base,user,{role:"assistant",text:err.message||"処理に失敗しました",error:true,createdAt:Date.now()}],cid)}finally{setLoading(false);setImages([])}}
+ function touchStart(e){if(view!=="chat")return;dragging.current=true;start.current=e.touches[0].clientX}
+ function touchMove(e){if(!dragging.current)return;const x=Math.max(0,e.touches[0].clientX-start.current);if(x){setDrag(Math.min(x,innerWidth*.92));if(x>8)e.preventDefault()}}
+ function touchEnd(){if(!dragging.current)return;dragging.current=false;if(drag>110)history();else setDrag(0)}
+ async function copy(t,i){try{await navigator.clipboard.writeText(t);setCopied(i);setTimeout(()=>setCopied(null),1300)}catch{}}
+ async function status(){setStatusOpen(true);try{setStatus(await(await fetch("/api/status",{cache:"no-store"})).json())}catch{setStatus(null)}}
+ return <main className="app">
+  <div className={"screen "+view} onTouchStart={touchStart} onTouchMove={touchMove} onTouchEnd={touchEnd} style={view==="chat"?{transform:"translateX("+drag+"px)",transition:dragging.current?"none":"transform .28s cubic-bezier(.2,.8,.2,1)"}:{}}>
+   <header className="topbar"><b>AI HUB</b><button className="statusButton" onClick={status}>AI STATUS</button></header>
+   {view==="history"?<><section className="historyHead"><div className="eyebrow"><Icon type={mode.id} size={15}/>{mode.name} AI</div><h1>チャット</h1><div className="searchBox"><Icon type="search" size={18}/><input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="チャットを検索"/></div></section><section className="historyList">{list.length?list.map(x=><button className="historyItem" key={x.id} onClick={()=>openChat(x)}><div className="historyTop"><strong>{x.title}</strong><time>{date(x.updatedAt)}</time></div><p>{x.preview}</p></button>):<div className="empty"><span><Icon type={mode.id} size={26}/></span><b>{filter?"見つからない":"まだチャットがない"}</b><small>{filter?"別のキーワードで検索してみて":"右下の＋から新しく始めよう"}</small></div>}</section><button className="fab" onClick={newChat}><Icon type="plus" size={27}/></button></>:<><header className="chatHeader"><button onClick={history}><Icon type="back" size={22}/></button><div><b>{current?.title||"新しいチャット"}</b><small>{mode.name} AI</small></div></header>{cat==="code"&&<div className="githubInline"><div><span>GitHub直接反映</span>{github?.connected?<button onClick={async()=>{await fetch("/api/github/logout",{method:"POST"});setGithub({...github,connected:false})}}>切断</button>:<button disabled={!github?.configured} onClick={()=>location.href="/api/github/login"}>接続</button>}</div>{github?.connected&&<input value={repo} onChange={e=>setRepo(e.target.value)} placeholder="UdonRX/drivingapp"/>}{githubMsg&&<small>{githubMsg}</small>}</div>}<section className="messages">{current?.messages?.map((m,i)=><div className={"message "+m.role} key={i}><div className="bubble">{m.imageCount>0&&<div className="imageCount">📷 添付画像 {m.imageCount}枚</div>}{m.imageUrl?<img className="generatedImage" src={m.imageUrl} alt="生成結果"/>:<div className="markdown" dangerouslySetInnerHTML={{__html:md(m.text)}}/>}{m.role==="assistant"&&m.text&&<button className="copy" onClick={()=>copy(m.text,i)}><Icon type="copy" size={15}/>{copied===i?"コピー済み":"コピー"}</button>}</div></div>)}{!current?.messages?.length&&!loading&&<div className="empty chatEmpty"><span><Icon type={mode.id} size={28}/></span><b>{mode.name} AI</b><small>{mode.hint}。何をしたいか入力してみて。</small></div>}{loading&&<div className="message assistant"><div className="bubble">● 考え中…</div></div>}</section></>}
   </div>
-
-  <div className="composerWrap"><form className="composer" onSubmit={submit}>
-    {category==="image"&&images.length>0&&<div className="attachPreview">{images.map((x,i)=><img className="thumb" src={x} alt={"添付画像 "+(i+1)} key={i}/>)}</div>}
-    <div className="composerRow">
-      {category==="image"&&<label className="iconButton" aria-label="画像を添付"><Icon type="plus" size={20}/><input className="fileInput" type="file" accept="image/*" multiple onChange={addImages}/></label>}
-      <textarea ref={ref} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={category==="search"?"知りたいことを入力…":category==="code"?"コードやエラーを入力…":"作りたい画像を説明…"} rows={1} inputMode="text" enterKeyHint="enter"/>
-      <button className="sendButton" type="submit" disabled={!prompt.trim()||loading} aria-label="送信"><Icon type="send" size={19}/></button>
-    </div>
-  </form></div>
-
-  {statusOpen&&<div className="statusPanel" onClick={()=>setStatusOpen(false)}><section className="statusSheet" onClick={e=>e.stopPropagation()}>
-    <div className="statusHeader"><div className="statusTitle">AI STATUS</div><button className="close" onClick={()=>setStatusOpen(false)}>×</button></div>
-    {!status?<div className="notice">状態を取得できませんでした。</div>:Object.entries(status.groups).map(([g,ps])=><div className="statusGroup" key={g}>
-      <div className="statusGroupTitle"><Icon type={g} size={15}/>{g==="search"?"検索":g==="code"?"コード":"画像"}</div>
-      {ps.map(p=><div className="providerRow" key={p.provider}><div className="providerName">{p.provider}<small>{p.detail}</small></div><div className={"providerState "+(p.status==="available"?"ok":p.status==="error"?"error":"disabled")}>{p.status==="available"?(p.detail?.includes("検索可能")?"● 接続OK":p.detail?.includes("設定OK")?"● 設定OK":"● 利用可能"):p.status==="error"?"× 未設定":"○ 未設定"}{p.remaining&&<><br/>{p.remaining}</>}</div></div>)}
-    </div>)}
-  </section></div>}
-</main>
+  {view==="chat"&&<div className="composerWrap"><form className="composer" onSubmit={send}>{cat==="image"&&images.length>0&&<div className="attachPreview">{images.map((x,i)=><img className="thumb" src={x} key={i} alt="添付画像"/></div>)}<div className="composerRow">{cat==="image"&&<label className="iconButton"><Icon type="plus" size={20}/><input className="fileInput" type="file" accept="image/*" multiple onChange={attach}/></label>}<textarea ref={input} value={prompt} onChange={e=>setPrompt(e.target.value)} rows={1} enterKeyHint="enter" placeholder={cat==="search"?"知りたいことを入力…":cat==="code"?"コードやエラーを入力…":"作りたい画像を説明…"}/><button className="sendButton" disabled={!prompt.trim()||loading}><Icon type="send" size={19}/></button></div></form></div>}
+  {view==="history"&&<nav className="bottomTabs">{MODES.map(x=><button className={cat===x.id?"active":""} key={x.id} onClick={()=>tab(x.id)}><Icon type={x.id} size={21}/><span>{x.name}</span></button>)}</nav>}
+  {statusOpen&&<div className="statusPanel" onClick={()=>setStatusOpen(false)}><section className="statusSheet" onClick={e=>e.stopPropagation()}><h2>AI STATUS</h2>{status?Object.entries(status.groups).map(([g,ps])=><div key={g}><h3>{g==="search"?"検索":g==="code"?"コード":"画像"}</h3>{ps.map(p=><div className="providerRow" key={p.provider}><span>{p.provider}<small>{p.detail}</small></span><em>{p.status==="available"?"● 利用可能":"× 未設定"}{p.remaining&&<><br/>{p.remaining}</>}</em></div>)}</div>):<p>状態を取得できませんでした。</p>}</section></div>}
+ </main>
 }

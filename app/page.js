@@ -142,7 +142,7 @@ export default function Home(){
     <div className="statusHeader"><div className="statusTitle">AI STATUS</div><button className="close" onClick={()=>setStatusOpen(false)}>×</button></div>
     {!status?<div className="notice">状態を取得できませんでした。</div>:Object.entries(status.groups).map(([g,ps])=><div className="statusGroup" key={g}>
       <div className="statusGroupTitle"><Icon type={g} size={15}/>{g==="search"?"検索":g==="code"?"コード":"画像"}</div>
-      {ps.map(p=><div className="providerRow" key={p.provider}><div className="providerName">{p.provider}<small>{p.detail}</small></div><div className={"providerState "+(p.status==="available"?"ok":p.status==="error"?"error":"disabled")}>{p.status==="available"?(p.detail?.includes("検索可能")?"● 接続OK":p.detail?.includes("設定OK")?"● 設定OK":"● 利用可能"):p.status==="error"?"× 未設定":"○ 未設定"}<br/>{p.remaining}</div></div>)}
+      {ps.map(p=><div className="providerRow" key={p.provider}><div className="providerName">{p.provider}<small>{p.detail}</small></div><div className={"providerState "+(p.status==="available"?"ok":p.status==="error"?"error":"disabled")}>{p.status==="available"?(p.detail?.includes("検索可能")?"● 接続OK":p.detail?.includes("設定OK")?"● 設定OK":"● 利用可能"):p.status==="error"?"× 未設定":"○ 未設定"}{p.remaining&&<><br/>{p.remaining}</>}</div></div>)}
     </div>)}
   </section></div>}
 </main>

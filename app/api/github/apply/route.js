@@ -14,7 +14,7 @@ function jsonFromText(text){
 }
 function isTextPath(p){
   return /\.(js|jsx|ts|tsx|mjs|cjs|json|css|scss|md|mdx|html|yml|yaml|txt|py|go|rs|java|kt|swift|vue|svelte|sql|sh)$/i.test(p)
-    && !/(^|\\/)(node_modules|\.next|dist|build|coverage)(\\/|$)/.test(p);
+    && !/(^|\/)(node_modules|\.next|dist|build|coverage)(\/|$)/.test(p);
 }
 export async function POST(request){
   const token=readSession(request);

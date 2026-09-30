@@ -52,9 +52,13 @@ export default function Home(){
   const [loading,setLoading]=useState(false);
   const [statusOpen,setStatusOpen]=useState(false);
   const [status,setStatus]=useState(null);
+  const [github,setGithub]=useState(null);
+  const [githubRepo,setGithubRepo]=useState("");
+  const [githubMessage,setGithubMessage]=useState("");
   const ref=useRef(null);
 
   useEffect(()=>{if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{})},[]);
+  useEffect(()=>{fetch("/api/github/me",{cache:"no-store"}).then(r=>r.json()).then(setGithub).catch(()=>setGithub(null))},[]);
   useEffect(()=>{if(ref.current){ref.current.style.height="auto";ref.current.style.height=Math.min(ref.current.scrollHeight,150)+"px"}},[prompt]);
 
   async function loadStatus(){
@@ -71,14 +75,25 @@ export default function Home(){
   async function submit(e){
     e?.preventDefault();
     if(!prompt.trim()||loading)return;
-    setLoading(true);setResult(null);
+    setLoading(true);setResult(null);setGithubMessage("");
     try{
-      const r=await fetch("/api/ai",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({category,prompt,images:category==="image"?images:[]})});
+      const direct=category==="code"&&github?.connected&&githubRepo.trim();
+      const endpoint=direct?"/api/github/apply":"/api/ai";
+      const body=direct?{repo:githubRepo,prompt}:{category,prompt,images:category==="image"?images:[]};
+      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
       const d=await r.json();
       if(!r.ok)throw new Error(d?.error||"処理に失敗しました");
-      setResult(d);
+      if(direct){
+        setGithubMessage(d.changedFiles?.length?"GitHubに反映したよ："+d.changedFiles.join("、"):d.message||"変更はありませんでした。");
+        setResult({text:d.changedFiles?.length?"GitHubへ直接反映しました。\\n\\n変更ファイル\\n"+d.changedFiles.map(x=>"- "+x).join("\\n")+"\\n\\nブランチ："+d.branch:d.message||"変更はありませんでした。",provider:"GitHub"});
+      }else setResult(d);
     }catch(e){setResult({error:e.message||"処理に失敗しました"})}
     finally{setLoading(false)}
+  }
+
+  async function githubLogout(){
+    await fetch("/api/github/logout",{method:"POST"});
+    setGithub({...github,connected:false,user:null});
   }
 
   const mode=MODES.find(x=>x.id===category);
@@ -93,6 +108,14 @@ export default function Home(){
         <span className="modeIcon"><Icon type={x.id} size={25}/></span><span className="modeName">{x.name}</span><span className="modeHint">{x.hint}</span>
       </button>)}
     </section>
+
+    {category==="code"&&<section className="githubBox">
+      <div className="githubBoxTop"><div><strong>GitHubへ直接反映</strong><small>無料のGitHub APIを使って、必要なファイルだけ変更する</small></div>
+      {github?.connected?<button className="githubSmall" type="button" onClick={githubLogout}>切断</button>:<button className="githubSmall" type="button" onClick={()=>{window.location.href="/api/github/login"}} disabled={!github?.configured}>GitHub接続</button>}</div>
+      {github?.connected&&<><div className="githubUser">{github.user?.login} として接続中</div><input className="repoInput" value={githubRepo} onChange={e=>setGithubRepo(e.target.value)} placeholder="UdonRX/drivingapp"/></>}
+      {!github?.configured&&<small className="githubHint">GitHub連携の環境変数を設定すると接続できるよ。</small>}
+      {githubMessage&&<div className="githubMessage">{githubMessage}</div>}
+    </section>}
 
     <section className="resultArea">
       {loading&&<div className="resultCard"><div className="notice"><span className="loadingDot"/>考え中…</div></div>}

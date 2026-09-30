@@ -12,7 +12,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",
 
 function markdown(md){
   const tick=String.fromCharCode(96);
-  const blocks=[];
+  s=s.replace(fence,(_,code)=>{const i=blocks.push(code.replace(/^\w+\n/,""))-1;return "@@CODE"+i+"@@"});
   let s=String(md||"").replace(/\r\n/g,"\n");
   const fence=new RegExp(tick.repeat(3)+"([\\s\\S]*?)"+tick.repeat(3),"g");
   s=s.replace(fence,(_,code)=>{const i=blocks.push(code.replace(/^\\w+\n/,""))-1;return "@@CODE"+i+"@@"});

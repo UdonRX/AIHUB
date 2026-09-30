@@ -2,7 +2,7 @@
 
 検索・コード・画像の3ジャンルをユーザーが選び、ProviderはAI HUBが無料枠の中から自動選択するNext.js/PWAです。
 
-検索はBrave Searchで情報を集め、Geminiを第一候補として要約します。Geminiが使えない場合はGroq、OpenRouter Free、Cloudflare Workers AIへ切り替えます。コードはGroq、Gemini、OpenRouter Free、Cloudflare Workers AIの順です。画像はHugging FaceのQwen-Image-2.1 ZeroGPUを第一候補にし、任意でCloudflareの画像モデルを予備にできます。
+検索はクレカ不要のSearXNG公開インスタンスから情報を集め、Geminiを第一候補として要約します。検索インスタンスが使えない場合は複数のSearXNGインスタンスへ自動フォールバックします。コードはGroq、Gemini、OpenRouter Free、Cloudflare Workers AIの順です。画像はHugging FaceのQwen-Image-2.1 ZeroGPUを第一候補にし、任意でCloudflareの画像モデルを予備にできます。
 
 環境変数:
 GEMINI_API_KEY / GEMINI_MODEL

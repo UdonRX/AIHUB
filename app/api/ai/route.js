@@ -16,9 +16,10 @@ function errorInfo(e){
 export async function POST(request){
   const debugId=crypto.randomUUID();
   const started=Date.now();
+  let category=null;
   try{
     const b=await request.json();
-    const category=b?.category;
+    category=b?.category;
     const prompt=typeof b?.prompt==="string"?b.prompt.trim():"";
     const images=Array.isArray(b?.images)?b.images:[];
 

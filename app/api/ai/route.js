@@ -63,7 +63,7 @@ export async function POST(request){
     console.error(JSON.stringify({
       event:"ai_request_error",
       debugId,
-      category,
+      category:category||"unknown",
       duration:Date.now()-started,
       error:info,
       failures:e?.failures||null,
